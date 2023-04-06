@@ -104,7 +104,11 @@ type Server struct {
 
 // ServeHTTP as HTTP handler
 func (s Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	s.p2pHandler(w, req)
+	if strings.HasPrefix(req.URL.Path, fmt.Sprintf("/%s/", s.config.APIKey)) {
+		s.p2pHandler(w, req)
+	} else {
+		DispatcherHandler(w, req)
+	}
 }
 
 func (s Server) p2pHandler(w http.ResponseWriter, req *http.Request) {
