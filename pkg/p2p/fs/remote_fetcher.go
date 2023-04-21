@@ -25,8 +25,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/data-accelerator/dadi-p2proxy/pkg/p2p/hostselector"
-
 	log "github.com/sirupsen/logrus"
 )
 
@@ -51,16 +49,14 @@ type RemoteFetcher interface {
 // remoteSource is a RemoteFetcher implementation
 type remoteSource struct {
 	req       *http.Request
-	hp        hostselector.HostPicker
 	apikey    string
 	transport *http.Transport
 }
 
 // newRemoteSource will new a remoteSource
-func newRemoteSource(req *http.Request, hp hostselector.HostPicker, APIKey string) RemoteFetcher {
+func newRemoteSource(req *http.Request, APIKey string) RemoteFetcher {
 	return &remoteSource{
 		req:    req,
-		hp:     hp,
 		apikey: APIKey,
 		transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -71,11 +67,11 @@ func newRemoteSource(req *http.Request, hp hostselector.HostPicker, APIKey strin
 
 func (f *remoteSource) PreadRemote(buff []byte, offset int64) (int, error) {
 	fn := f.req.URL.String()
-	upperHost := f.hp.GetHost(fn)
+	// upperHost := f.hp.GetHost(fn)
 	url := fn
-	if upperHost != "" {
-		url = fmt.Sprintf("%s/%s/%s", upperHost, f.apikey, fn)
-	}
+	// if upperHost != "" {
+	// 	url = fmt.Sprintf("%s/%s/%s", upperHost, f.apikey, fn)
+	// }
 	newReq, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return -1, err
@@ -97,9 +93,9 @@ func (f *remoteSource) PreadRemote(buff []byte, offset int64) (int, error) {
 		return 0, FetchFailure{resp, err}
 	}
 	source := resp.Header.Get("X-P2P-Source")
-	if source != "" {
-		f.hp.PutHost(fn, source)
-	} else {
+	if source == "" {
+		// 	f.hp.PutHost(fn, source)
+		// } else {
 		source = "origin"
 	}
 	log.Infof("Got remote %s %s from %s ", fn, newReq.Header.Get("Range"), source)

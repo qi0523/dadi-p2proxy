@@ -46,10 +46,8 @@ func StartP2PServer(config *configure.DeployConfig, isRun bool) *http.Server {
 		CacheSize:  config.P2PConfig.CacheConfig.FileCacheSize,
 		CacheMedia: config.P2PConfig.CacheConfig.FileCachePath,
 	})
-	hp := hostselector.NewHostPicker(config.P2PConfig.RootList, cachePool)
 	p2pFs := fs.NewP2PFS(&fs.Config{
 		CachePool:       cachePool,
-		HostPicker:      hp,
 		APIKey:          config.P2PConfig.APIKey,
 		PrefetchWorkers: config.P2PConfig.PrefetchConfig.PrefetchThread,
 	})

@@ -29,7 +29,6 @@ import (
 // P2PFS cached remote file system (RO)
 type P2PFS struct {
 	cache        cache.FileCachePool
-	hp           hostselector.HostPicker
 	apikey       string
 	prefetchable bool
 	preTask      chan prefetchTask
@@ -37,7 +36,7 @@ type P2PFS struct {
 
 // Open a p2pFile object
 func (fs P2PFS) Open(path string, req *http.Request) (*P2PFile, error) {
-	file := P2PFile{path, fs, 0, 0, newRemoteSource(req, fs.hp, fs.apikey)}
+	file := P2PFile{path, fs, 0, 0, newRemoteSource(req, fs.apikey)}
 	fileSize, err := file.Fstat()
 	if fs.prefetchable {
 		file.Prefetch(0, fileSize)
@@ -86,7 +85,6 @@ type Config struct {
 func NewP2PFS(cfg *Config) *P2PFS {
 	fs := &P2PFS{
 		cache:        cfg.CachePool,
-		hp:           cfg.HostPicker,
 		apikey:       cfg.APIKey,
 		preTask:      make(chan prefetchTask, cfg.PrefetchWorkers),
 		prefetchable: cfg.PrefetchWorkers > 0,

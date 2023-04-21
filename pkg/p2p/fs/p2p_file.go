@@ -89,7 +89,7 @@ again:
 		return data, nil
 	})
 	if err != nil {
-		r.fs.hp.ResetHost(r.path)
+		// r.fs.hp.ResetHost(r.path)
 		if !retry {
 			log.Errorf("Failed to read %s at %d, %s retry", r.path, offset, err.Error())
 			retry = true
