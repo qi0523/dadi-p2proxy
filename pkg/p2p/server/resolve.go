@@ -27,7 +27,7 @@ func DispatcherHandler(w http.ResponseWriter, req *http.Request) {
 
 func urlPathExtract(path string) (string, string) {
 	ss := strings.Split(path, "/")
-	return ss[2], ss[4]
+	return ss[2] + "/" + ss[3], ss[5]
 }
 
 func ResolvedManifest(w http.ResponseWriter, r *http.Request) {
