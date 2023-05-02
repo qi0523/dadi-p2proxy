@@ -35,12 +35,12 @@ import (
 )
 
 func StartP2PServer(config *configure.DeployConfig, isRun bool) *http.Server {
-	switch config.P2PConfig.RunMode {
-	case "root":
-		log.Info("Run on P2P Root")
-	case "agent":
-		log.Info("Run on P2P Agent")
-	}
+	// switch config.P2PConfig.RunMode {
+	// case "root":
+	// 	log.Info("Run on P2P Root")
+	// case "agent":
+	// 	log.Info("Run on P2P Agent")
+	// }
 	cachePool := cache.NewCachePool(&cache.Config{
 		MaxEntry:   config.P2PConfig.CacheConfig.MemCacheSize,
 		CacheSize:  config.P2PConfig.CacheConfig.FileCacheSize,
@@ -49,6 +49,7 @@ func StartP2PServer(config *configure.DeployConfig, isRun bool) *http.Server {
 	p2pFs := fs.NewP2PFS(&fs.Config{
 		CachePool:       cachePool,
 		APIKey:          config.P2PConfig.APIKey,
+		Regisrty:        config.P2PConfig.Registry,
 		PrefetchWorkers: config.P2PConfig.PrefetchConfig.PrefetchThread,
 	})
 	serverHandler := newP2PServer(&Config{
@@ -134,18 +135,18 @@ func (s Server) p2pHandler(w http.ResponseWriter, req *http.Request) {
 	}()
 	log.Debug(req.Header)
 	defer log.Debug(w.Header())
-	agents := strings.Split(req.Header.Get("X-P2P-Agent"), " ")
-	agent := agents[len(agents)-1]
+	// agents := strings.Split(req.Header.Get("X-P2P-Agent"), " ")
+	// agent := agents[len(agents)-1]
 	fn := req.URL.Path[len(s.config.APIKey)+2:]
 	reqURL := fmt.Sprintf("%s?%s", fn, req.URL.RawQuery)
-	if len(agent) > 0 {
-		if accepted, redirect := s.cm.TryAccept(fn, agent); !accepted {
-			log.Infof("Request for %s from %s redirected to %s", fn, agent, redirect)
-			s.redirectHTTPHandler(w, req, redirect, reqURL)
-			return
-		}
-		log.Infof("Accept child %s for %s", agent, fn)
-	}
+	// if len(agent) > 0 {
+	// 	if accepted, redirect := s.cm.TryAccept(fn, agent); !accepted {
+	// 		log.Infof("Request for %s from %s redirected to %s", fn, agent, redirect)
+	// 		s.redirectHTTPHandler(w, req, redirect, reqURL)
+	// 		return
+	// 	}
+	// 	log.Infof("Accept child %s for %s", agent, fn)
+	// }
 	newReq, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
 		panic(err)
@@ -155,9 +156,9 @@ func (s Server) p2pHandler(w http.ResponseWriter, req *http.Request) {
 			newReq.Header.Add(k, v)
 		}
 	}
-	newReq.Header.Add("X-P2P-Agent", s.config.MyAddr)
+	// newReq.Header.Add("X-P2P-Agent", s.config.MyAddr)
 	log.Debugf("Cache Request %s %s %s", fn, newReq.Header.Get("X-P2P-Agent"), newReq.Header.Get("Range"))
-	file, err := s.config.Fs.Open(fn, newReq)
+	file, err := s.config.Fs.Open(fn[strings.Index(fn, "sha256"):], newReq)
 	if err != nil {
 		panic(err)
 	} else {

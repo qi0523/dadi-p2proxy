@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -16,7 +17,7 @@ import (
 
 func DispatcherHandler(w http.ResponseWriter, req *http.Request) {
 	const blobsPattern = "/v2/.*/blobs/.*"
-	if strings.HasPrefix(req.URL.Path, blobsPattern) {
+	if matched, _ := regexp.MatchString(blobsPattern, req.URL.Path); matched {
 		ServerBlob(w, req)
 	} else if req.Method == http.MethodHead {
 		ResolvedManifest(w, req)

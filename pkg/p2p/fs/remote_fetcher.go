@@ -50,14 +50,16 @@ type RemoteFetcher interface {
 type remoteSource struct {
 	req       *http.Request
 	apikey    string
+	registry  string
 	transport *http.Transport
 }
 
 // newRemoteSource will new a remoteSource
-func newRemoteSource(req *http.Request, APIKey string) RemoteFetcher {
+func newRemoteSource(req *http.Request, APIKey string, registry string) RemoteFetcher {
 	return &remoteSource{
-		req:    req,
-		apikey: APIKey,
+		req:      req,
+		apikey:   APIKey,
+		registry: registry,
 		transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			MaxConnsPerHost: 100,
@@ -66,12 +68,18 @@ func newRemoteSource(req *http.Request, APIKey string) RemoteFetcher {
 }
 
 func (f *remoteSource) PreadRemote(buff []byte, offset int64) (int, error) {
-	fn := f.req.URL.String()
+	// fn := f.req.URL.String()
 	// upperHost := f.hp.GetHost(fn)
-	url := fn
+	// url := fmt.Sprintf("%s/%s/%s", f.req.Host, f.apikey, f.req.URL.Path) //TODO: registry?
 	// if upperHost != "" {
 	// 	url = fmt.Sprintf("%s/%s/%s", upperHost, f.apikey, fn)
 	// }
+    var url string
+	if f.req.Host == f.registry {
+		url = f.req.URL.String()
+	} else {
+		url = fmt.Sprintf("%s/%s/%s", f.req.Host, f.apikey, f.req.URL.Path) //TODO: registry
+	}
 	newReq, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return -1, err
@@ -82,7 +90,7 @@ func (f *remoteSource) PreadRemote(buff []byte, offset int64) (int, error) {
 		newReq.Header[k] = vv2
 	}
 	newReq.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", offset, int64(len(buff))+offset-1))
-	log.Infof("Fetching remote %s %s", fn, newReq.Header.Get("Range"))
+	log.Infof("Fetching remote %s %s", url, newReq.Header.Get("Range"))
 	client := http.Client{
 		Transport: f.transport,
 		Timeout:   10 * time.Second,
@@ -92,18 +100,23 @@ func (f *remoteSource) PreadRemote(buff []byte, offset int64) (int, error) {
 		log.Error(resp, err)
 		return 0, FetchFailure{resp, err}
 	}
-	source := resp.Header.Get("X-P2P-Source")
-	if source == "" {
-		// 	f.hp.PutHost(fn, source)
-		// } else {
-		source = "origin"
-	}
-	log.Infof("Got remote %s %s from %s ", fn, newReq.Header.Get("Range"), source)
+	// source := resp.Header.Get("X-P2P-Source")
+	// if source != "" {
+	// 		f.hp.PutHost(fn, source)
+	// } else {
+	// 	source = "origin"
+	// }
+	log.Infof("Got remote %s %s from %s ", url, newReq.Header.Get("Range"), newReq.Host)
 	return io.ReadFull(resp.Body, buff)
 }
 
 func (f *remoteSource) FstatRemote() (int64, error) {
-	url := f.req.URL.String()
+	var url string
+	if f.req.Host == f.registry {
+		url = f.req.URL.String()
+	} else {
+		url = fmt.Sprintf("%s/%s/%s", f.req.Host, f.apikey, f.req.URL.Path) //TODO: registry
+	}
 	newReq, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return 0, FetchFailure{nil, err}
@@ -114,7 +127,7 @@ func (f *remoteSource) FstatRemote() (int64, error) {
 		}
 	}
 	newReq.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", 0, 0))
-	newReq.Header.Del("X-P2P-Agent")
+	// newReq.Header.Del("X-P2P-Agent")
 	client := http.Client{
 		Transport: f.transport,
 		Timeout:   10 * time.Second,

@@ -39,7 +39,7 @@ type ProxyConfig struct {
 }
 
 type P2PConfig struct {
-	RunMode        string
+	Registry        string
 	RootList       []string
 	NodeIP         string
 	DetectAddr     string
@@ -91,9 +91,9 @@ func CheckConfig(config *DeployConfig) {
 	// p2p
 	{
 		// run mode
-		if config.P2PConfig.RunMode != "root" && config.P2PConfig.RunMode != "agent" {
-			log.Fatalf("Unexpected run mode %s!", config.P2PConfig.RunMode)
-		}
+		// if config.P2PConfig.RunMode != "root" && config.P2PConfig.RunMode != "agent" {
+		// 	log.Fatalf("Unexpected run mode %s!", config.P2PConfig.RunMode)
+		// }
 		// prefetch
 		if !config.P2PConfig.PrefetchConfig.PrefetchEnable {
 			config.P2PConfig.PrefetchConfig.PrefetchThread = 0

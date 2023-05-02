@@ -53,7 +53,7 @@ func StartServer(idx int, runMode string, rootList []string, port int, serveBySS
 	config.ProxyConfig.CertConfig.CertPath = "/tmp/p2pcert.pem"
 	config.ProxyConfig.CertConfig.KeyPath = "/tmp/p2pcert.key"
 	// p2p
-	config.P2PConfig.RunMode = runMode
+	// config.P2PConfig.RunMode = runMode
 	config.P2PConfig.RootList = rootList
 	config.P2PConfig.NodeIP = "127.0.0.1"
 	config.P2PConfig.APIKey = "dadip2p"

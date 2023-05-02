@@ -44,10 +44,10 @@ var (
 			configure.CheckConfig(config)
 			wg := &sync.WaitGroup{}
 			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				server.StartProxyServer(config, true)
-			}()
+			// go func() {
+			// 	defer wg.Done()
+			// 	server.StartProxyServer(config, true)
+			// }()
 			go func() {
 				defer wg.Done()
 				server.StartP2PServer(config, true)
