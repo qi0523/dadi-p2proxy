@@ -26,7 +26,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const cacheBlockSize int = 1 * 1024 * 1024
+const cacheBlockSize int = 1 * 1024 * 512
 
 type prefetchTask struct {
 	fn     string
