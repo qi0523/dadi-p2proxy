@@ -78,7 +78,7 @@ func (f *remoteSource) PreadRemote(buff []byte, offset int64) (int, error) {
 	if f.req.Host == f.registry {
 		url = f.req.URL.String()
 	} else {
-		url = fmt.Sprintf("%s/%s/%s", f.req.Host, f.apikey, f.req.URL.Path) //TODO: registry
+		url = fmt.Sprintf("http://%s/%s%s", f.req.Host, f.apikey, f.req.URL.Path) //TODO: registry
 	}
 	newReq, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -115,7 +115,7 @@ func (f *remoteSource) FstatRemote() (int64, error) {
 	if f.req.Host == f.registry {
 		url = f.req.URL.String()
 	} else {
-		url = fmt.Sprintf("%s/%s/%s", f.req.Host, f.apikey, f.req.URL.Path) //TODO: registry
+		url = fmt.Sprintf("http://%s/%s%s", f.req.Host, f.apikey, f.req.URL.Path) //TODO: registry
 	}
 	newReq, err := http.NewRequest("GET", url, nil)
 	if err != nil {
