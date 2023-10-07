@@ -1,6 +1,7 @@
 package server
 
 import (
+	"math/rand"
 	"fmt"
 	"io/fs"
 	"net/http"
@@ -49,6 +50,7 @@ func ResolvedManifest(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		retry--
+		time.Sleep(time.Duration(rand.Intn(10)) * time.Millisecond)
 	}
 	if err != nil { //using registry
 		w.WriteHeader(http.StatusNotFound)
@@ -74,6 +76,7 @@ func GetManifest(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		retry--
+		time.Sleep(time.Duration(rand.Intn(10)) * time.Millisecond)
 	}
 	if err != nil { //using registry
 		w.WriteHeader(http.StatusNotFound)
@@ -104,6 +107,7 @@ func ServerBlob(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		retry--
+		time.Sleep(time.Duration(rand.Intn(10)) * time.Millisecond)
 	}
 	if err != nil { //using registry
 		w.WriteHeader(http.StatusNotFound)
