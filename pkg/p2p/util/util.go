@@ -21,6 +21,7 @@ import (
 	"math/rand"
 	"net"
 	"path/filepath"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -92,4 +93,22 @@ func Max(x, y int) int {
 		return x
 	}
 	return y
+}
+
+func GetMetaKey(path string) string {
+	pos := strings.Index(path, "#~~#")
+	if pos == -1 {
+		panic("GetMetakey invalid path")
+	}
+	policy := path[pos+4]
+	switch policy {
+	case '0':
+		return ""
+	case '1':
+		return path[pos+5 : pos+5+32]
+	case '2':
+		return path[pos+5:strings.Index(path, "sha256") - 1]
+	default:
+		panic("GetMetaKey invalid policy")
+	}
 }

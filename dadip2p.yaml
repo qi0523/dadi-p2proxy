@@ -25,7 +25,7 @@ P2PConfig:
   # ServeBySSL, used to determine serve on https
   ServeBySSL: false
   # Port, serve port
-  Port: 19145
+  Port: 30000 
   # APIKey
   APIKey: "dadip2p"
   # CacheConfig
@@ -39,6 +39,6 @@ P2PConfig:
   # PrefetchConfig
   PrefetchConfig:
     # PrefetchEnable, used to determine open prefetch
-    PrefetchEnable: true
+    PrefetchEnable: false 
     # PrefetchThread
     PrefetchThread: 64

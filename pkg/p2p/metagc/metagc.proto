@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package metagc;
+
+option go_package = "pkg/p2p/metagc";
+
+//#services
+service MetaGcService {
+  rpc GcMetadata (MetaGcRequest) returns (MetaGcResponse) {}
+}
+//#services
+
+//#messages
+// The request message
+message MetaGcRequest {
+  string actionName = 1;
+  string kind = 2;
+  string invokerIp = 3;
+}
+
+// The response message
+message MetaGcResponse {
+  bool success = 1;
+}

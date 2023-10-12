@@ -17,12 +17,17 @@
 package cache
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 
+	"github.com/data-accelerator/dadi-p2proxy/pkg/p2p/client"
+	"github.com/data-accelerator/dadi-p2proxy/pkg/p2p/metagc"
+	"github.com/data-accelerator/dadi-p2proxy/pkg/p2p/util"
 	"github.com/dgraph-io/ristretto"
 	log "github.com/sirupsen/logrus"
 )
@@ -54,6 +59,8 @@ type fileCachePoolImpl struct {
 	fileCache *ristretto.Cache
 	memCache  *ristretto.Cache
 	media     string
+	funcMeta  map[string]map[string]int64
+	funcLock  sync.Mutex
 	lock      sync.Mutex
 }
 
@@ -69,6 +76,7 @@ retry:
 			return nil, err
 		}
 		c.fileCache.Set(key, val, 0)
+		c.PutFuncMeta(path, offset)
 	}
 	c.lock.Unlock()
 	item := val.(*fileCacheItem)
@@ -105,6 +113,65 @@ func (c *fileCachePoolImpl) PutLen(path string, len int64) bool {
 	return true
 }
 
+func (c *fileCachePoolImpl) PutFuncMeta(path string, offset int64) bool {
+	funcName := util.GetMetaKey(path)
+	if funcName == "" {
+		return true
+	}
+	c.funcLock.Lock()
+	defer c.funcLock.Unlock()
+
+	key := filepath.Join(path, strconv.FormatInt(offset, 10))
+	if set, ok := c.funcMeta[funcName]; ok {
+		if _, ok = set[key]; ok {
+			return true
+		}
+		set[key] = offset
+		return true
+	}
+	set := make(map[string]int64)
+	set[key] = offset
+	c.funcMeta[funcName] = set
+	return true
+}
+
+func (c *fileCachePoolImpl) DelFuncMeta(key string) {
+	path := key[strings.Index(key, "/")+1:]
+	funcName := util.GetMetaKey(path)
+	if funcName == "" {
+		return
+	}
+
+	c.funcLock.Lock()
+	set, ok := c.funcMeta[funcName]
+	if !ok { //已经被gc了
+		return
+	}
+
+	_, ok = set[path]
+	if !ok { // path doesn't exist.
+		return
+	}
+
+	// delete all metas of function-name
+	delete(set, path)
+	for k, _ := range set {
+		key := filepath.Join(c.media, k)
+		c.fileCache.Del(key)
+		delete(set, k)
+	}
+	delete(c.funcMeta, funcName)
+	c.funcLock.Unlock()
+
+	// send gcRPC
+	req := metagc.MetaGcRequest{ActionName: funcName, Kind: funcName, InvokerIp: "localhost"}
+	ctx := context.Background()
+	client := client.GetGRPCClient()
+	if _, err := client.GcMetadata(ctx, &req); err != nil {
+		client.GcMetadata(ctx, &req)
+	}
+}
+
 func (c *fileCachePoolImpl) GetHost(path string) (string, bool) {
 	key := filepath.Join(path, "upstream")
 	c.memCache.Wait()
@@ -133,6 +200,7 @@ func NewCachePool(config *Config) FileCachePool {
 		log.Fatalf("Mkdir %s fail! %s", config.CacheMedia, err)
 	}
 	cachePool := &fileCachePoolImpl{}
+	cachePool.funcMeta = make(map[string]map[string]int64)
 	var err error
 	if cachePool.fileCache, err = ristretto.NewCache(&ristretto.Config{
 		NumCounters: 1e7,
@@ -140,6 +208,7 @@ func NewCachePool(config *Config) FileCachePool {
 		BufferItems: 64,
 		OnExit: func(val interface{}) {
 			item := val.(*fileCacheItem)
+			cachePool.DelFuncMeta(item.key)
 			item.Drop()
 		},
 		Cost: func(val interface{}) int64 {

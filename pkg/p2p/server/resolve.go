@@ -1,9 +1,9 @@
 package server
 
 import (
-	"math/rand"
 	"fmt"
 	"io/fs"
+	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -42,15 +42,19 @@ func ResolvedManifest(w http.ResponseWriter, r *http.Request) {
 	)
 	name, ref := urlPathExtract(r.URL.Path)
 	retry := client.RETRY
+	c := client.GetContainerdClient()
 	for retry > 0 {
-		if mediaType, dgst, err = client.GetManifestInfoByTag(name, ref); mediaType != "" {
+		if mediaType, dgst, size, err = client.GetManifestInfoByTmpImage(c, name, ref); err == nil {
+			break
+		}
+		if mediaType, dgst, err = client.GetManifestInfoByTag(c, name, ref); mediaType != "" {
 			if fi, err = os.Stat(filepath.Join(client.ContainerdRoot, "blobs/sha256", dgst.String()[7:])); err == nil {
 				size = fi.Size()
 				break
 			}
 		}
 		retry--
-		time.Sleep(time.Duration(rand.Intn(10)) * time.Millisecond)
+		time.Sleep(time.Duration(rand.Intn(client.RAND_INTN)) * time.Millisecond)
 	}
 	if err != nil { //using registry
 		w.WriteHeader(http.StatusNotFound)
@@ -76,7 +80,7 @@ func GetManifest(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		retry--
-		time.Sleep(time.Duration(rand.Intn(10)) * time.Millisecond)
+		time.Sleep(time.Duration(rand.Intn(client.RAND_INTN)) * time.Millisecond)
 	}
 	if err != nil { //using registry
 		w.WriteHeader(http.StatusNotFound)
@@ -107,7 +111,7 @@ func ServerBlob(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		retry--
-		time.Sleep(time.Duration(rand.Intn(10)) * time.Millisecond)
+		time.Sleep(time.Duration(rand.Intn(client.RAND_INTN)) * time.Millisecond)
 	}
 	if err != nil { //using registry
 		w.WriteHeader(http.StatusNotFound)

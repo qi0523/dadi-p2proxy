@@ -137,6 +137,7 @@ func (s Server) p2pHandler(w http.ResponseWriter, req *http.Request) {
 	defer log.Debug(w.Header())
 	// agents := strings.Split(req.Header.Get("X-P2P-Agent"), " ")
 	// agent := agents[len(agents)-1]
+	log.Info(req.URL.Path)
 	fn := req.URL.Path[len(s.config.APIKey)+2:]
 	reqURL := fmt.Sprintf("%s?%s", fn, req.URL.RawQuery)
 	// if len(agent) > 0 {
@@ -158,7 +159,12 @@ func (s Server) p2pHandler(w http.ResponseWriter, req *http.Request) {
 	}
 	// newReq.Header.Add("X-P2P-Agent", s.config.MyAddr)
 	log.Debugf("Cache Request %s %s %s", fn, newReq.Header.Get("X-P2P-Agent"), newReq.Header.Get("Range"))
-	file, err := s.config.Fs.Open(fn[strings.Index(fn, "sha256"):], newReq)
+	var file *fs.P2PFile
+	if strings.Index(fn, "@@") != -1 {
+		file, err = s.config.Fs.Open(fn[strings.Index(fn, "blobs")+7:], newReq)
+	} else {
+		file, err = s.config.Fs.Open(fn[strings.Index(fn, "blobs")+5:], newReq)
+	}
 	if err != nil {
 		panic(err)
 	} else {

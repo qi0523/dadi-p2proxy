@@ -67,6 +67,18 @@ func newRemoteSource(req *http.Request, APIKey string, registry string) RemoteFe
 	}
 }
 
+func (f *remoteSource) getUrl() string {
+	p := f.req.URL.Path
+	blobsPos := strings.Index(p, "blobs")
+	shaPos := strings.Index(p, "sha256")
+	if strings.Index(p, "@@") != -1 {
+		p = p[:blobsPos+6] + p[shaPos:]
+		return fmt.Sprintf("http://%s/%s", f.req.Host, p)
+	} else {
+		return fmt.Sprintf("http://%s/%s/%s", f.req.Host, f.apikey, f.req.URL.Path)
+	}
+}
+
 func (f *remoteSource) PreadRemote(buff []byte, offset int64) (int, error) {
 	// fn := f.req.URL.String()
 	// upperHost := f.hp.GetHost(fn)
@@ -74,11 +86,12 @@ func (f *remoteSource) PreadRemote(buff []byte, offset int64) (int, error) {
 	// if upperHost != "" {
 	// 	url = fmt.Sprintf("%s/%s/%s", upperHost, f.apikey, fn)
 	// }
-    var url string
+	var url string
 	if f.req.Host == f.registry {
 		url = f.req.URL.String()
 	} else {
-		url = fmt.Sprintf("http://%s/%s%s", f.req.Host, f.apikey, f.req.URL.Path) //TODO: registry
+		// url = fmt.Sprintf("http://%s/%s%s", f.req.Host, f.apikey, f.req.URL.Path) //TODO: registry
+		url = f.getUrl()
 	}
 	newReq, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -115,7 +128,8 @@ func (f *remoteSource) FstatRemote() (int64, error) {
 	if f.req.Host == f.registry {
 		url = f.req.URL.String()
 	} else {
-		url = fmt.Sprintf("http://%s/%s%s", f.req.Host, f.apikey, f.req.URL.Path) //TODO: registry
+		// url = fmt.Sprintf("http://%s/%s%s", f.req.Host, f.apikey, f.req.URL.Path) //TODO: registry
+		url = f.getUrl()
 	}
 	newReq, err := http.NewRequest("GET", url, nil)
 	if err != nil {
