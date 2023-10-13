@@ -96,7 +96,7 @@ func Max(x, y int) int {
 }
 
 func GetMetaKey(path string) string {
-	pos := strings.Index(path, "#~~#")
+	pos := strings.Index(path, "~~~~")
 	if pos == -1 {
 		panic("GetMetakey invalid path")
 	}

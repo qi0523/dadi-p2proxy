@@ -75,7 +75,7 @@ func (f *remoteSource) getUrl() string {
 		p = p[:blobsPos+6] + p[shaPos:]
 		return fmt.Sprintf("http://%s/%s", f.req.Host, p)
 	} else {
-		return fmt.Sprintf("http://%s/%s/%s", f.req.Host, f.apikey, f.req.URL.Path)
+		return fmt.Sprintf("http://%s/%s%s", f.req.Host, f.apikey, f.req.URL.Path)
 	}
 }
 

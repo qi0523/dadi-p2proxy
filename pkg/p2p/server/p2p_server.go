@@ -161,9 +161,9 @@ func (s Server) p2pHandler(w http.ResponseWriter, req *http.Request) {
 	log.Debugf("Cache Request %s %s %s", fn, newReq.Header.Get("X-P2P-Agent"), newReq.Header.Get("Range"))
 	var file *fs.P2PFile
 	if strings.Index(fn, "@@") != -1 {
-		file, err = s.config.Fs.Open(fn[strings.Index(fn, "blobs")+7:], newReq)
+		file, err = s.config.Fs.Open(fn[strings.Index(fn, "blobs")+8:], newReq)
 	} else {
-		file, err = s.config.Fs.Open(fn[strings.Index(fn, "blobs")+5:], newReq)
+		file, err = s.config.Fs.Open(fn[strings.Index(fn, "blobs")+6:], newReq)
 	}
 	if err != nil {
 		panic(err)
