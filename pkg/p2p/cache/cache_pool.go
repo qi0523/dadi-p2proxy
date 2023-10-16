@@ -164,7 +164,11 @@ func (c *fileCachePoolImpl) DelFuncMeta(key string) {
 	c.funcLock.Unlock()
 
 	// send gcRPC
-	req := metagc.MetaGcRequest{ActionName: funcName, Kind: funcName, InvokerIp: "localhost"}
+	hostIp, err := client.GetOutBoundIP()
+	if err != nil {
+		log.Error(err)
+	}
+	req := metagc.MetaGcRequest{ActionName: funcName, Kind: funcName, InvokerIp: hostIp}
 	ctx := context.Background()
 	client := client.GetGRPCClient()
 	if _, err := client.GcMetadata(ctx, &req); err != nil {

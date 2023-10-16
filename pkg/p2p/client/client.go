@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -26,6 +27,8 @@ const (
 var client *containerd.Client
 
 var grpcClient metagc.MetaGcServiceClient
+
+var hostIp string
 
 func GetContainerdClient() *containerd.Client {
 	if client == nil {
@@ -68,4 +71,18 @@ func GetGRPCClient() metagc.MetaGcServiceClient {
 		grpcClient = metagc.NewMetaGcServiceClient(conn)
 	}
 	return grpcClient
+}
+
+func GetOutBoundIP() (ip string, err error) {
+	if hostIp != "" {
+		return hostIp, nil
+	}
+	conn, err := net.Dial("udp", "8.8.8.8:53")
+	if err != nil {
+		return "", err
+	}
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+	// fmt.Println(localAddr.String())
+	hostIp = strings.Split(localAddr.String(), ":")[0]
+	return hostIp, nil
 }
