@@ -3,16 +3,12 @@ package client
 import (
 	"context"
 	"net"
-	"os"
 	"strings"
 	"time"
 
 	"github.com/containerd/containerd"
-	"github.com/data-accelerator/dadi-p2proxy/pkg/p2p/metagc"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 const (
@@ -25,8 +21,6 @@ const (
 )
 
 var client *containerd.Client
-
-var grpcClient metagc.MetaGcServiceClient
 
 var hostIp string
 
@@ -60,17 +54,6 @@ func GetManifestInfoByTmpImage(c *containerd.Client, name, tag string) (string, 
 		return "", "", 0, err
 	}
 	return tmpimage.Target.MediaType, tmpimage.Target.Digest, tmpimage.Target.Size, nil
-}
-
-func GetGRPCClient() metagc.MetaGcServiceClient {
-	if grpcClient == nil {
-		conn, err := grpc.Dial(os.Args[3]+":13001", grpc.WithTransportCredentials(insecure.NewCredentials()))
-		if err != nil {
-			panic("grpc dial failed.")
-		}
-		grpcClient = metagc.NewMetaGcServiceClient(conn)
-	}
-	return grpcClient
 }
 
 func GetOutBoundIP() (ip string, err error) {

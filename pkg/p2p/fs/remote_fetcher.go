@@ -44,6 +44,9 @@ type RemoteFetcher interface {
 	PreadRemote(buf []byte, offset int64) (int, error)
 	// FstatRemote get file length by remote
 	FstatRemote() (int64, error)
+
+	// GetImageName
+	GetImageName() string
 }
 
 // remoteSource is a RemoteFetcher implementation
@@ -73,10 +76,20 @@ func (f *remoteSource) getUrl() string {
 	shaPos := strings.Index(p, "sha256")
 	if strings.Index(p, "@@") != -1 {
 		p = p[:blobsPos+6] + p[shaPos:]
-		return fmt.Sprintf("http://%s/%s", f.req.Host, p)
+		// if strings.Index(f.req.Host, "aws") != -1 {
+		// 	return fmt.Sprintf("https://%s%s", f.req.Host, p)
+		// }
+		return fmt.Sprintf("https://%s%s", f.req.Host, p)
 	} else {
 		return fmt.Sprintf("http://%s/%s%s", f.req.Host, f.apikey, f.req.URL.Path)
 	}
+}
+
+// req.Host + req.URL.Path[strings.Index(req.URL.Path, "v2")+2:strings.Index(req.URL.Path, "blobs")-1] + ":obd"
+
+func (f *remoteSource) GetImageName() string {
+	path := f.req.URL.Path
+	return f.req.Host + path[strings.Index(path, "v2")+2:strings.Index(path, "blobs")-1] + ":obd"
 }
 
 func (f *remoteSource) PreadRemote(buff []byte, offset int64) (int, error) {
@@ -104,6 +117,10 @@ func (f *remoteSource) PreadRemote(buff []byte, offset int64) (int, error) {
 	}
 	newReq.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", offset, int64(len(buff))+offset-1))
 	log.Infof("Fetching remote %s %s", url, newReq.Header.Get("Range"))
+	// authorized
+	if strings.Index(f.req.URL.Path, "@@") != -1 {
+		newReq.Header.Set("Authorization", "Basic "+getToken())
+	}
 	client := http.Client{
 		Transport: f.transport,
 		Timeout:   10 * time.Second,
@@ -142,6 +159,10 @@ func (f *remoteSource) FstatRemote() (int64, error) {
 	}
 	newReq.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", 0, 0))
 	// newReq.Header.Del("X-P2P-Agent")
+	// authorized
+	if strings.Index(f.req.URL.Path, "@@") != -1 {
+		newReq.Header.Set("Authorization", "Basic "+getToken())
+	}
 	client := http.Client{
 		Transport: f.transport,
 		Timeout:   10 * time.Second,

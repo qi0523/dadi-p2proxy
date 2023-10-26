@@ -19,6 +19,7 @@ package fs
 import (
 	"io"
 
+	"github.com/data-accelerator/dadi-p2proxy/pkg/p2p/metagc"
 	"github.com/data-accelerator/dadi-p2proxy/pkg/p2p/util"
 
 	"github.com/data-accelerator/dadi-p2proxy/pkg/p2p/rangesplit"
@@ -86,6 +87,8 @@ again:
 		} else if ret != supposeLen {
 			return data, io.ErrUnexpectedEOF
 		}
+		// gcMeta TODO:
+		metagc.GetGcTask().Insert(util.GetMetaKey(r.path), r.Source.GetImageName())
 		return data, nil
 	})
 	if err != nil {
