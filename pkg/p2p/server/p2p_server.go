@@ -106,6 +106,7 @@ func (s Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if strings.HasPrefix(req.URL.Path, fmt.Sprintf("/%s/", s.config.APIKey)) {
 		s.p2pHandler(w, req)
 	} else {
+		log.Info(req.URL.Path)
 		DispatcherHandler(w, req)
 	}
 }

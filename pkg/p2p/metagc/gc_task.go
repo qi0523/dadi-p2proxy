@@ -8,6 +8,7 @@ import (
 
 	"github.com/containerd/containerd"
 	"github.com/data-accelerator/dadi-p2proxy/pkg/p2p/client"
+	"github.com/sirupsen/logrus"
 	grpc "google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -23,6 +24,9 @@ type GcTask struct {
 }
 
 func (t *GcTask) Insert(funcName string, imageName string) {
+	if funcName == "" {
+		return
+	}
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	set, ok := t.data[imageName]
@@ -56,6 +60,46 @@ func (t *GcTask) getGcInfo(imageName string) string {
 	return ""
 }
 
+func (t *GcTask) gc_handler(iNames map[string]struct{}) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	logrus.Info("gc_handler is start...")
+	if len(iNames) != 0 {
+		var res string
+		for key, _ := range iNames {
+			infos := t.getGcInfo(key)
+			if infos == "" {
+				continue
+			}
+			res += infos
+		}
+		logrus.Info("gc res, ", res)
+		if res != "" {
+			res = res[:len(res)-1]
+			hostIp, err := client.GetOutBoundIP()
+			if err != nil {
+				logrus.Info("hostIp can not be got.")
+				return
+			}
+			req := MetaGcRequest{ActionName: res, Kind: res, InvokerIp: hostIp}
+			retries := 3
+			ctx := context.Background()
+			for retries > 0 {
+				if _, err := GetGRPCClient().GcMetadata(ctx, &req); err == nil {
+					for iName, _ := range iNames {
+						t.containerdClient.ImageService().Delete(ctx, iName)
+						delete(t.data, iName)
+						logrus.Info("gc_hander, image is deleted, ", iName)
+					}
+					break
+				}
+				retries--
+			}
+		}
+	}
+}
+
 func (t *GcTask) Run() {
 	ctx := context.Background()
 	for {
@@ -70,6 +114,7 @@ func (t *GcTask) Run() {
 
 		for _, image := range images {
 			iNames[image.Name] = struct{}{}
+			logrus.Info("imageList ", image.Name)
 		}
 
 		cons, err := t.containerdClient.ContainerService().List(ctx)
@@ -80,40 +125,11 @@ func (t *GcTask) Run() {
 
 		for _, con := range cons {
 			delete(iNames, con.Image)
+			logrus.Info("containerList ", con.Image)
 		}
 
-		t.mu.Lock()
+		t.gc_handler(iNames)
 
-		if len(iNames) != 0 {
-			var res string
-			for key, _ := range iNames {
-				infos := t.getGcInfo(key)
-				if infos == "" {
-					continue
-				}
-				res += infos
-			}
-			if res != "" {
-				res = res[:len(res)-1]
-				hostIp, err := client.GetOutBoundIP()
-				if err != nil {
-					panic(err)
-				}
-				req := MetaGcRequest{ActionName: res, Kind: res, InvokerIp: hostIp}
-				retries := 3
-				for retries > 0 {
-					if _, err := GetGRPCClient().GcMetadata(ctx, &req); err == nil {
-						for iName, _ := range iNames {
-							t.containerdClient.ImageService().Delete(ctx, iName)
-							delete(t.data, iName)
-						}
-						break
-					}
-					retries--
-				}
-			}
-		}
-		t.mu.Unlock()
 		time.Sleep(5 * time.Minute)
 	}
 }
@@ -137,6 +153,7 @@ func GetGcTask() *GcTask {
 		}
 
 		go gcTask.Run()
+		logrus.Info("gc is running....")
 		return gcTask
 	}
 	return gcTask
